@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 public interface MemberRepo extends JpaRepository<Member, Integer> {
 
     Member findByMemberName(String memberName);
+    Boolean existsByMemberName(String memberName);
+    Boolean existsByEmailId(String emailId);
 
     @Query("SELECT m.memberName FROM Member m WHERE m.emailId = :emailId")
     String findMemberNameByEmailId(@Param("emailId") String emailId);

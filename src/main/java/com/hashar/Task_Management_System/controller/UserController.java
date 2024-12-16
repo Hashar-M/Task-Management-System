@@ -26,14 +26,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("The password you entered has been compromised. Please choose a different password.");
         }
-        try{
-            return new ResponseEntity<>(memberService.register(memberDto),HttpStatus.OK);
-        }
-        catch (Exception e){
-            System.out.println(e.getMessage());
-            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
-        }
-
+        return new ResponseEntity<>(memberService.register(memberDto),HttpStatus.OK);
     }
 
     @PostMapping("/login")

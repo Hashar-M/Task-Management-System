@@ -1,6 +1,8 @@
 package com.hashar.Task_Management_System.advice;
 
 import com.hashar.Task_Management_System.errorResponse.ErrorResponse;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -46,5 +48,15 @@ public class TMSControllerAdvice {
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse("Authorization Error", ex.getMessage()));
     }
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Object> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("Data conflict " , ex.getMessage()));
+    }
 
+    @ExceptionHandler(ConstraintViolationException.class)  // handles hibernate Constraint violation exception not from jakarta.
+    public ResponseEntity<Object> handleConstraintViolation(ConstraintViolationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("Unique constraint violated", ex.getMessage()));
+    }
 }

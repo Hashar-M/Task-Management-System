@@ -8,6 +8,7 @@ import com.hashar.Task_Management_System.repo.MemberRepo;
 import jakarta.validation.constraints.Null;
 import org.hibernate.jdbc.Expectation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,7 +32,14 @@ public class MemberService {
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     public Member register(MemberDTO memberDTO){
-
+        Boolean isMemberNameExist = memberRepo.existsByMemberName(memberDTO.getMemberName());
+        Boolean isEmailIdExist = memberRepo.existsByEmailId(memberDTO.getEmailId());
+        if(isMemberNameExist){
+            throw new DataIntegrityViolationException("Username already exists.");
+        }
+        if(isEmailIdExist){
+            throw new DataIntegrityViolationException("emailId already exists.");
+        }
         memberDTO.setPassword(encoder.encode(memberDTO.getPassword()));
 
         Member member = new Member(memberDTO);
