@@ -1,5 +1,6 @@
 package com.hashar.Task_Management_System.controller;
 
+import com.hashar.Task_Management_System.dto.LoginResponseDTO;
 import com.hashar.Task_Management_System.dto.MemberDTO;
 import com.hashar.Task_Management_System.dto.MemberLoginDTO;
 import com.hashar.Task_Management_System.services.MemberService;
@@ -30,8 +31,8 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public String login(@Valid @RequestBody MemberLoginDTO memberLoginDTO) {
-        return memberService.verify(memberLoginDTO);
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody MemberLoginDTO memberLoginDTO) {
+        return  new ResponseEntity<>(memberService.verify(memberLoginDTO),HttpStatus.OK);
     }
 
     @GetMapping("/test")
