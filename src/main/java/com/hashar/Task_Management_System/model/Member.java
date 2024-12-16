@@ -1,76 +1,45 @@
 package com.hashar.Task_Management_System.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.*;
+import com.hashar.Task_Management_System.Constants.Roles;
+import com.hashar.Task_Management_System.dto.MemberDTO;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 @Entity
-//@Getter
-//@Setter
-//@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-//@AllArgsConstructor
-//@NoArgsConstructor
-//@ToString
+@Getter
+@Setter
+@ToString
+@NoArgsConstructor
 public class Member {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int memberId;
+    @NotBlank
+    @Column(unique = true)
     private String memberName;
+    @Email
+    @NotBlank
+    @Column(unique = true)
     private String emailId;
+    @NotBlank
+    @Size(message = "password must be at least 8 characters and contains alphanumeric characters.", min = 8)
     private String password;
-    private String role;
 
-    public int getMemberId() {
-        return memberId;
-    }
+    @Enumerated(EnumType.STRING)
+    private Roles role;
 
-    public String getMemberName() {
-        return memberName;
-    }
-
-    public String getEmailId() {
-        return emailId;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setMemberId(int memberId) {
-        this.memberId = memberId;
-    }
-
-    public void setMemberName(String memberName) {
-        this.memberName = memberName;
-    }
-
-    public void setEmailId(String emailId) {
-        this.emailId = emailId;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    @Override
-    public String toString() {
-        return "Member{" +
-                "memberId=" + memberId +
-                ", memberName='" + memberName + '\'' +
-                ", emailId='" + emailId + '\'' +
-                ", password='" + password + '\'' +
-                ", role='" + role + '\'' +
-                '}';
+    public Member(MemberDTO memberDTO) {
+        this.memberName = memberDTO.getMemberName();
+        this.emailId = memberDTO.getEmailId();
+        this.password = memberDTO.getPassword();
     }
 }
+
+
+
