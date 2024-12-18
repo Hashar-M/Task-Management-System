@@ -37,7 +37,7 @@ public class UserController {
 
     @GetMapping("/test")
     public ResponseEntity<String> test(){
-        System.out.println("workinggg........");
+        System.out.println("working........");
         return new ResponseEntity<>("working....", HttpStatus.OK);
     }
 }

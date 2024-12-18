@@ -2,6 +2,7 @@ package com.hashar.Task_Management_System.filter;
 
 import com.hashar.Task_Management_System.services.JWTService;
 import com.hashar.Task_Management_System.services.MyUserDetailsService;
+import io.jsonwebtoken.security.InvalidKeyException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,7 +38,7 @@ public class JwtFilter extends OncePerRequestFilter {
             username = jwtService.extractUserName(token);
         }
         else{
-            System.out.println(request.toString());
+            System.out.println("request " + request.toString());
         }
         //else block?
 

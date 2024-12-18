@@ -5,7 +5,9 @@ import com.hashar.Task_Management_System.dto.LoginResponseDTO;
 import com.hashar.Task_Management_System.dto.MemberDTO;
 import com.hashar.Task_Management_System.dto.MemberLoginDTO;
 import com.hashar.Task_Management_System.model.Member;
+import com.hashar.Task_Management_System.model.Token;
 import com.hashar.Task_Management_System.repo.MemberRepo;
+import com.hashar.Task_Management_System.repo.TokenRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,11 +17,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class MemberService {
 
     @Autowired
     MemberRepo memberRepo;
+    @Autowired
+    TokenRepo tokenRepo;
 //    @Autowired
 //    private PasswordEncoder passwordEncoder;
 
@@ -61,14 +67,15 @@ public class MemberService {
         }else {
             memberName = memberLoginDTO.getMemberName();
         }
+        Member member = memberRepo.findByMemberName(memberName);
         Authentication authentication = authManager
                 .authenticate(new UsernamePasswordAuthenticationToken(memberName,memberLoginDTO.getPassword()));
         if (authentication.isAuthenticated()){
             String jwt = jwtService.generateToken(memberLoginDTO.getMemberName());
-            System.out.println(authentication.getAuthorities().stream().toList());
-            System.out.println(authentication.getCredentials());
-            System.out.println(authentication.getDetails());
-            System.out.println(authentication.getName());
+
+            revokeAllTokenByMember(member.getMemberId()); // set members available tokens as invalid
+            saveMemberToken(jwt,null,member); // saving current access and refresh token to token table
+
             LoginResponseDTO loginResponseDTO = new LoginResponseDTO();
             loginResponseDTO.setJwt(jwt);
             loginResponseDTO.setMemberName(authentication.getName());
@@ -78,5 +85,25 @@ public class MemberService {
         else {
             throw new BadCredentialsException("Bad credentials");
         }
+    }
+
+    private void revokeAllTokenByMember(int memberId){
+        List<Token> validTokens = tokenRepo.findAllAccessTokensByUser(memberId);
+        if(validTokens.isEmpty()) {
+            return;
+        }
+
+        validTokens.forEach(t-> {
+            t.setLoggedOut(true);
+        });
+        tokenRepo.saveAll(validTokens);
+    }
+    private void saveMemberToken(String accessToken, String refreshToken, Member member) {
+        Token token = new Token();
+        token.setAccessToken(accessToken);
+        token.setRefreshToken(refreshToken);
+        token.setLoggedOut(false);
+        token.setMember(member);
+        tokenRepo.save(token);
     }
 }

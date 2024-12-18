@@ -1,6 +1,8 @@
 package com.hashar.Task_Management_System.advice;
 
 import com.hashar.Task_Management_System.errorResponse.ErrorResponse;
+import io.jsonwebtoken.security.InvalidKeyException;
+import io.jsonwebtoken.security.SignatureException;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,4 +62,19 @@ public class TMSControllerAdvice {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse("Unique constraint violated", ex.getMessage()));
     }
+
+    @ExceptionHandler(SignatureException.class)
+    public ResponseEntity<Object> handleJwtValidityException( SignatureException ex){
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("JWT expired", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidKeyException.class)
+    public ResponseEntity<Object> HandleInvalidKeyException( InvalidKeyException ex){
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("Invalid JWT", ex.getMessage()));
+    }
+
 }

@@ -1,9 +1,12 @@
 package com.hashar.Task_Management_System.services;
 
+import com.hashar.Task_Management_System.repo.TokenRepo;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -18,8 +21,12 @@ import java.util.function.Function;
 
 @Service
 public class JWTService {
+    @Autowired
+    TokenRepo tokenRepo;
 
     private String secretkey = "";
+    @Value("${application.security.jwt.access-token-expiration}")
+    private long accessTokenExpire;
     public JWTService() {
 
         try {
@@ -69,7 +76,13 @@ public class JWTService {
 
     public boolean validateToken(String token, UserDetails userDetails) {
         final String userName = extractUserName(token);
-        return (userName.equals(userDetails.getUsername()) && !isTokenExpired(token));
+
+        boolean validToken = tokenRepo
+                .findByAccessToken(token)
+                .map(t -> !t.isLoggedOut())
+                .orElse(false);
+
+        return (userName.equals(userDetails.getUsername()) && !isTokenExpired(token) && validToken);
     }
 
     private boolean isTokenExpired(String token) {

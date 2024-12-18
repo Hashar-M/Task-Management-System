@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.List;
+
 @Entity
 @Getter
 @Setter
@@ -33,6 +35,9 @@ public class Member {
 
     @Enumerated(EnumType.STRING)
     private Roles role;
+
+    @OneToMany(mappedBy = "member")
+    private List<Token> tokens;
 
     public Member(MemberDTO memberDTO) {
         this.memberName = memberDTO.getMemberName();
