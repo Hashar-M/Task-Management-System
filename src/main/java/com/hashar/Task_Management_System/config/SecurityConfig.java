@@ -42,7 +42,7 @@ public class SecurityConfig {
         HeaderWriterLogoutHandler clearSiteData = new HeaderWriterLogoutHandler(new ClearSiteDataHeaderWriter(ClearSiteDataHeaderWriter.Directive.COOKIES));
         return http.csrf(customizer -> customizer.disable()).
                 authorizeHttpRequests(request -> request
-                        .requestMatchers("/user/login","/user/register", "/home/welcome","/error")
+                        .requestMatchers("/user/login","/user/register","/user/refresh_token", "/home/welcome","/error")
                         .permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())

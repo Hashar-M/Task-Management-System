@@ -14,4 +14,5 @@ public class LoginResponseDTO {
     private String memberName;
     private List<? extends GrantedAuthority> role;
     private String jwt;
+    private String refreshToken;
 }

@@ -6,10 +6,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface MemberRepo extends JpaRepository<Member, Integer> {
 
-    Member findByMemberName(String memberName);
+    Optional<Member> findByMemberName(String memberName);
     Boolean existsByMemberName(String memberName);
     Boolean existsByEmailId(String emailId);
 

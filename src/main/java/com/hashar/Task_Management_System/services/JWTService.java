@@ -1,5 +1,6 @@
 package com.hashar.Task_Management_System.services;
 
+import com.hashar.Task_Management_System.model.Member;
 import com.hashar.Task_Management_System.repo.TokenRepo;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -27,6 +28,8 @@ public class JWTService {
     private String secretkey = "";
     @Value("${application.security.jwt.access-token-expiration}")
     private long accessTokenExpire;
+    @Value("${application.security.jwt.refresh-token-expiration}")
+    private long refreshTokenExpire;
     public JWTService() {
 
         try {
@@ -37,14 +40,21 @@ public class JWTService {
             throw new RuntimeException(e);
         }
     }
-    public String generateToken(String username) {
+    public String generateAccessToken(String username) {
+        return generateToken(username,accessTokenExpire);
+    }
+    public String generateRefreshToken(String username) {
+        return generateToken(username,refreshTokenExpire);
+    }
+
+    public String generateToken(String username, long expireTime) {
         Map<String, Object> claims = new HashMap<>();
         return Jwts.builder()
                 .claims()
                 .add(claims)
                 .subject(username)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 30)) // 30 minutes
+                .expiration(new Date(System.currentTimeMillis() + expireTime))
                 .and()
                 .signWith(getKey())
                 .compact();
@@ -84,6 +94,16 @@ public class JWTService {
 
         return (userName.equals(userDetails.getUsername()) && !isTokenExpired(token) && validToken);
     }
+    public boolean isValidRefreshToken(String token, Member member) {
+        String memberName = extractUserName(token);
+
+        boolean validRefreshToken = tokenRepo
+                .findByRefreshToken(token)
+                .map(t -> !t.isLoggedOut())
+                .orElse(false);
+
+        return (memberName.equals(member.getMemberName())) && !isTokenExpired(token) && validRefreshToken;
+    }
 
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
@@ -92,4 +112,6 @@ public class JWTService {
     private Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
+
+
 }

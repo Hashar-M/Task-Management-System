@@ -4,19 +4,28 @@ import com.hashar.Task_Management_System.Constants.Roles;
 import com.hashar.Task_Management_System.dto.LoginResponseDTO;
 import com.hashar.Task_Management_System.dto.MemberDTO;
 import com.hashar.Task_Management_System.dto.MemberLoginDTO;
+import com.hashar.Task_Management_System.exception.MemberNotFoundException;
 import com.hashar.Task_Management_System.model.Member;
 import com.hashar.Task_Management_System.model.Token;
 import com.hashar.Task_Management_System.repo.MemberRepo;
 import com.hashar.Task_Management_System.repo.TokenRepo;
+import io.jsonwebtoken.security.InvalidKeyException;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -67,17 +76,19 @@ public class MemberService {
         }else {
             memberName = memberLoginDTO.getMemberName();
         }
-        Member member = memberRepo.findByMemberName(memberName);
+        Member member = memberRepo.findByMemberName(memberName).orElseThrow(()->new MemberNotFoundException("user not found."));
         Authentication authentication = authManager
                 .authenticate(new UsernamePasswordAuthenticationToken(memberName,memberLoginDTO.getPassword()));
         if (authentication.isAuthenticated()){
-            String jwt = jwtService.generateToken(memberLoginDTO.getMemberName());
+            String jwt = jwtService.generateAccessToken(memberLoginDTO.getMemberName());
+            String refreshToken = jwtService.generateRefreshToken(memberLoginDTO.getMemberName());
 
             revokeAllTokenByMember(member.getMemberId()); // set members available tokens as invalid
-            saveMemberToken(jwt,null,member); // saving current access and refresh token to token table
+            saveMemberToken(jwt,refreshToken,member); // saving current access and refresh token to token table
 
             LoginResponseDTO loginResponseDTO = new LoginResponseDTO();
             loginResponseDTO.setJwt(jwt);
+            loginResponseDTO.setRefreshToken(refreshToken);
             loginResponseDTO.setMemberName(authentication.getName());
             loginResponseDTO.setRole(authentication.getAuthorities().stream().toList());
             return loginResponseDTO;
@@ -105,5 +116,44 @@ public class MemberService {
         token.setLoggedOut(false);
         token.setMember(member);
         tokenRepo.save(token);
+    }
+
+    public LoginResponseDTO loginByRefreshToken(HttpServletRequest request,
+                                              HttpServletResponse response) {
+        // extract the token from authorization header
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new BadCredentialsException("Invalid Refresh token format");
+        }
+
+        String token = authHeader.substring(7);
+
+        // extract username from token
+        String memberName = jwtService.extractUserName(token);
+
+        // check if the user exist in database
+        Member member = memberRepo.findByMemberName(memberName)
+                .orElseThrow(() -> new UsernameNotFoundException("memberName with " + memberName + " not found."));
+
+        // check if the token is valid
+        if (jwtService.isValidRefreshToken(token, member)) {
+            // generate access token
+            String accessToken = jwtService.generateAccessToken(memberName);
+            String refreshToken = jwtService.generateRefreshToken(memberName);
+
+            revokeAllTokenByMember(member.getMemberId());
+            saveMemberToken(accessToken, refreshToken, member);
+
+            LoginResponseDTO loginResponseDTO = new LoginResponseDTO();
+            loginResponseDTO.setJwt(accessToken);
+            loginResponseDTO.setRefreshToken(refreshToken);
+            loginResponseDTO.setMemberName(member.getMemberName());
+//            loginResponseDTO.setRole(new ArrayList<>().add());
+            return loginResponseDTO;
+        }
+        else {
+            throw new InvalidKeyException("invalid refresh token");
+        }
     }
 }

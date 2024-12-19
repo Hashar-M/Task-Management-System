@@ -4,6 +4,8 @@ import com.hashar.Task_Management_System.dto.LoginResponseDTO;
 import com.hashar.Task_Management_System.dto.MemberDTO;
 import com.hashar.Task_Management_System.dto.MemberLoginDTO;
 import com.hashar.Task_Management_System.services.MemberService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,5 +41,12 @@ public class UserController {
     public ResponseEntity<String> test(){
         System.out.println("working........");
         return new ResponseEntity<>("working....", HttpStatus.OK);
+    }
+    @PostMapping("/refresh_token")
+    public ResponseEntity<LoginResponseDTO> getAccessTokenByRefreshToken(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        return new ResponseEntity<>(memberService.loginByRefreshToken(request, response),HttpStatus.OK);
     }
 }
