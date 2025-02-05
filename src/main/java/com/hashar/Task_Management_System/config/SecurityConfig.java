@@ -12,6 +12,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -40,10 +41,15 @@ public class SecurityConfig {
 
 //        HeaderWriterLogoutHandler clearSiteData = new HeaderWriterLogoutHandler(new ClearSiteDataHeaderWriter());
         HeaderWriterLogoutHandler clearSiteData = new HeaderWriterLogoutHandler(new ClearSiteDataHeaderWriter(ClearSiteDataHeaderWriter.Directive.COOKIES));
-        return http.csrf(customizer -> customizer.disable()).
+        return http.csrf(AbstractHttpConfigurer::disable).
                 authorizeHttpRequests(request -> request
-                        .requestMatchers("/user/login","/user/register","/user/refresh_token", "/home/welcome","/error")
+                        .requestMatchers("/user/login","/user/register","/user/refresh_token",
+                                "/home/welcome","/error",
+                                "/api-docs/**","/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/swagger-ui/index.html")
                         .permitAll()
+                        .requestMatchers("/user/admin_only", "/user/delete").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/user/edit/").hasAnyAuthority("ROLE_USER","ROLE_ADMIN")
+                        .requestMatchers("/user/view/").hasAnyAuthority("ROLE_GUEST","ROLE_USER","ROLE_ADMIN")
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

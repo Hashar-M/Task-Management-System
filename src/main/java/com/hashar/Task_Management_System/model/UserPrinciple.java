@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class UserPrinciple implements UserDetails {
     private Member member;
@@ -17,7 +18,13 @@ public class UserPrinciple implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singleton(new SimpleGrantedAuthority("USER"));
+        List<GrantedAuthority> authorities = member.getRole()
+                .getPermissions()
+                .stream()
+                .map(permission -> new SimpleGrantedAuthority(permission.getPermission().toUpperCase()))
+                .collect(Collectors.toList());
+        authorities.add(new SimpleGrantedAuthority("ROLE_"+member.getRole().getRoleName().toUpperCase()));
+        return authorities;
     }
 
     @Override

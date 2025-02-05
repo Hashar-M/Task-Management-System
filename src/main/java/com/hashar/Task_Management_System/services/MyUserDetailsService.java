@@ -3,6 +3,7 @@ package com.hashar.Task_Management_System.services;
 import com.hashar.Task_Management_System.model.Member;
 import com.hashar.Task_Management_System.model.UserPrinciple;
 import com.hashar.Task_Management_System.repo.MemberRepo;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -14,9 +15,11 @@ public class MyUserDetailsService implements UserDetailsService {
     @Autowired
     MemberRepo memberRepo;
     @Override
+    @Transactional  //added to fix LazyInitializationException
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         Member member = memberRepo.findByMemberName(username).orElseThrow(()->new UsernameNotFoundException("User not found."));
-
+        // Initialize the permissions collection, added to fix LazyInitializationException
+        member.getRole().getPermissions().size();
         return new UserPrinciple(member);
     }
 }

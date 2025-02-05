@@ -1,6 +1,6 @@
 package com.hashar.Task_Management_System.model;
 
-import com.hashar.Task_Management_System.Constants.Roles;
+//import com.hashar.Task_Management_System.Constants.Roles;
 import com.hashar.Task_Management_System.dto.MemberDTO;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -22,18 +22,22 @@ public class Member {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int memberId;
+
     @NotBlank
     @Column(unique = true)
     private String memberName;
+
     @Email
     @NotBlank
     @Column(unique = true)
     private String emailId;
+
     @NotBlank
     @Size(message = "password must be at least 8 characters and contains alphanumeric characters.", min = 8)
     private String password;
 
-    @Enumerated(EnumType.STRING)
+    @ManyToOne
+    @JoinColumn(name = "role_id")
     private Roles role;
 
     @OneToMany(mappedBy = "member")

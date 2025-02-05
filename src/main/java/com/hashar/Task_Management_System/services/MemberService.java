@@ -1,13 +1,17 @@
 package com.hashar.Task_Management_System.services;
 
-import com.hashar.Task_Management_System.Constants.Roles;
 import com.hashar.Task_Management_System.dto.LoginResponseDTO;
 import com.hashar.Task_Management_System.dto.MemberDTO;
 import com.hashar.Task_Management_System.dto.MemberLoginDTO;
+import com.hashar.Task_Management_System.dto.RolesDTO;
 import com.hashar.Task_Management_System.exception.MemberNotFoundException;
 import com.hashar.Task_Management_System.model.Member;
+import com.hashar.Task_Management_System.model.Permissions;
+import com.hashar.Task_Management_System.model.Roles;
 import com.hashar.Task_Management_System.model.Token;
 import com.hashar.Task_Management_System.repo.MemberRepo;
+import com.hashar.Task_Management_System.repo.PermissionRepo;
+import com.hashar.Task_Management_System.repo.RolesRepo;
 import com.hashar.Task_Management_System.repo.TokenRepo;
 import io.jsonwebtoken.security.InvalidKeyException;
 import jakarta.persistence.EntityNotFoundException;
@@ -15,8 +19,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -35,6 +37,10 @@ public class MemberService {
     MemberRepo memberRepo;
     @Autowired
     TokenRepo tokenRepo;
+    @Autowired
+    RolesRepo rolesRepo;
+    @Autowired
+    PermissionRepo permissionsRepo;
 //    @Autowired
 //    private PasswordEncoder passwordEncoder;
 
@@ -57,7 +63,12 @@ public class MemberService {
         memberDTO.setPassword(encoder.encode(memberDTO.getPassword()));
 
         Member member = new Member(memberDTO);
-        member.setRole(Roles.USER);
+//        member.setRole(Roles.USER);
+        rolesRepo.findById(memberDTO.getRoleId())
+                .ifPresentOrElse(member::setRole,()->{
+                    throw new EntityNotFoundException("Role not found");
+                });
+//        member.setRole(Roles.fromString(memberDTO.getRole().toUpperCase()));
 
         return memberRepo.save(member);
     }
@@ -155,5 +166,39 @@ public class MemberService {
         else {
             throw new InvalidKeyException("invalid refresh token");
         }
+    }
+
+    public MemberDTO getUserDetailsByUsername(String username) {
+        Member member = memberRepo.findByMemberName(username)
+                .orElseThrow(() -> new EntityNotFoundException("member with username " + username + " not found."));
+        return new MemberDTO(member);
+    }
+
+    public Permissions addPermission(Permissions permissions) {
+        return  permissionsRepo.save(permissions);
+    }
+
+    public Roles addRole(Roles roles) {
+        return rolesRepo.save(roles);
+    }
+
+    public Iterable<Permissions> getPermissions() {
+        return permissionsRepo.findAll();
+    }
+
+    public Iterable<Roles> getRoles() {
+        return rolesRepo.findAll();
+    }
+    public Roles addRoleWithPermissions(RolesDTO rolesDTO) {
+        List<Permissions> existingPermissions = new ArrayList<>();
+        for (Integer permissionId : rolesDTO.getPermissionIds()) {
+            Permissions existingPermission = permissionsRepo.findById(permissionId)
+                    .orElseThrow(() -> new RuntimeException("Permission not found with id: " + permissionId));
+            existingPermissions.add(existingPermission);
+        }
+        Roles roles = new Roles();
+        roles.setRoleName(rolesDTO.getRoleName());
+        roles.setPermissions(existingPermissions);
+        return rolesRepo.save(roles);
     }
 }
