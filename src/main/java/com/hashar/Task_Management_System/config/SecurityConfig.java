@@ -4,6 +4,8 @@ import com.hashar.Task_Management_System.filter.JwtFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -47,9 +49,9 @@ public class SecurityConfig {
                                 "/home/welcome","/error",
                                 "/api-docs/**","/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/swagger-ui/index.html")
                         .permitAll()
-                        .requestMatchers("/user/admin_only", "/user/delete").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers("/user/edit/").hasAnyAuthority("ROLE_USER","ROLE_ADMIN")
-                        .requestMatchers("/user/view/").hasAnyAuthority("ROLE_GUEST","ROLE_USER","ROLE_ADMIN")
+                        .requestMatchers("/user/admin_only", "/user/delete").hasRole("ADMIN")
+                        .requestMatchers("/user/edit").hasRole("USER")
+                        .requestMatchers("/user/view").hasRole("GUEST")
                         .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -88,6 +90,14 @@ public class SecurityConfig {
     @Bean
     public CompromisedPasswordChecker compromisedPasswordChecker() {
         return new HaveIBeenPwnedRestApiPasswordChecker();
+    }
+    @Bean
+    static RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.withDefaultRolePrefix()
+                .role("ADMIN").implies("STAFF")
+                .role("STAFF").implies("USER")
+                .role("USER").implies("GUEST")
+                .build();
     }
 //    @Bean
 //    public ModelMapper modelMapper() {
