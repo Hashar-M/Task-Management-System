@@ -14,9 +14,16 @@ import org.springframework.stereotype.Service;
 public class MyUserDetailsService implements UserDetailsService {
     @Autowired
     MemberRepo memberRepo;
+
+    @Autowired
+    BruteForceProtectionService bruteForceProtectionService;
+
     @Override
     @Transactional  //added to fix LazyInitializationException
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        if (bruteForceProtectionService.isBlocked(username)){
+            throw new RuntimeException("User account is locked due to too many failed login attempts.");
+        }
         Member member = memberRepo.findByMemberName(username).orElseThrow(()->new UsernameNotFoundException("User not found."));
         // Initialize the permissions collection, added to fix LazyInitializationException
         member.getRole().getPermissions().size();

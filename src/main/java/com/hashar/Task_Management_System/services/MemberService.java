@@ -35,17 +35,22 @@ public class MemberService {
 
     @Autowired
     MemberRepo memberRepo;
+
     @Autowired
     TokenRepo tokenRepo;
+
     @Autowired
     RolesRepo rolesRepo;
+
     @Autowired
     PermissionRepo permissionsRepo;
-//    @Autowired
-//    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    BruteForceProtectionService bruteForceProtectionService;
 
     @Autowired
     private AuthenticationManager authManager;
+
     @Autowired
     JWTService jwtService;
 
@@ -80,32 +85,40 @@ public class MemberService {
          * is available?
          */
         String memberName;
-        if (memberLoginDTO.getMemberName() == null && memberLoginDTO.getEmailId() != null){
+        if (memberLoginDTO.getMemberName() == null && memberLoginDTO.getEmailId() != null) {
             memberName = memberRepo.findMemberNameByEmailId(memberLoginDTO.getEmailId());
         } else if (memberLoginDTO.getMemberName() == null) {
             throw new IllegalArgumentException("memberName or emailId is required with password");
-        }else {
+        } else {
             memberName = memberLoginDTO.getMemberName();
         }
-        Member member = memberRepo.findByMemberName(memberName).orElseThrow(()->new MemberNotFoundException("user not found."));
-        Authentication authentication = authManager
-                .authenticate(new UsernamePasswordAuthenticationToken(memberName,memberLoginDTO.getPassword()));
-        if (authentication.isAuthenticated()){
-            String jwt = jwtService.generateAccessToken(memberLoginDTO.getMemberName());
-            String refreshToken = jwtService.generateRefreshToken(memberLoginDTO.getMemberName());
+        try {
+            Member member = memberRepo.findByMemberName(memberName).orElseThrow(() -> new MemberNotFoundException("user not found."));
+            if (bruteForceProtectionService.isBlocked(memberName)) {
+                throw new RuntimeException("User account is locked due to too many failed login attempts.");
+            }
+            Authentication authentication = authManager
+                    .authenticate(new UsernamePasswordAuthenticationToken(memberName, memberLoginDTO.getPassword()));
+            if (authentication.isAuthenticated()) {
+                String jwt = jwtService.generateAccessToken(memberLoginDTO.getMemberName());
+                String refreshToken = jwtService.generateRefreshToken(memberLoginDTO.getMemberName());
 
-            revokeAllTokenByMember(member.getMemberId()); // set members available tokens as invalid
-            saveMemberToken(jwt,refreshToken,member); // saving current access and refresh token to token table
+                revokeAllTokenByMember(member.getMemberId()); // set members available tokens as invalid
+                saveMemberToken(jwt, refreshToken, member); // saving current access and refresh token to token table
 
-            LoginResponseDTO loginResponseDTO = new LoginResponseDTO();
-            loginResponseDTO.setJwt(jwt);
-            loginResponseDTO.setRefreshToken(refreshToken);
-            loginResponseDTO.setMemberName(authentication.getName());
-            loginResponseDTO.setRole(authentication.getAuthorities().stream().toList());
-            return loginResponseDTO;
-        }
-        else {
-            throw new BadCredentialsException("Bad credentials");
+                LoginResponseDTO loginResponseDTO = new LoginResponseDTO();
+                loginResponseDTO.setJwt(jwt);
+                loginResponseDTO.setRefreshToken(refreshToken);
+                loginResponseDTO.setMemberName(authentication.getName());
+                loginResponseDTO.setRole(authentication.getAuthorities().stream().toList());
+                return loginResponseDTO;
+            } else {
+                bruteForceProtectionService.loginFailed(memberName);
+                throw new BadCredentialsException("Bad credentials");
+            }
+        }catch (BadCredentialsException e){
+            bruteForceProtectionService.loginFailed(memberName);
+            throw e;
         }
     }
 

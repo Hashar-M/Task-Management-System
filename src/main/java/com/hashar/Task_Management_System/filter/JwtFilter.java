@@ -1,5 +1,6 @@
 package com.hashar.Task_Management_System.filter;
 
+import com.hashar.Task_Management_System.services.BruteForceProtectionService;
 import com.hashar.Task_Management_System.services.JWTService;
 import com.hashar.Task_Management_System.services.MyUserDetailsService;
 import io.jsonwebtoken.security.InvalidKeyException;
@@ -26,6 +27,10 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired
     JWTService jwtService;
+
+    @Autowired
+    BruteForceProtectionService bruteForceProtectionService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
@@ -49,6 +54,9 @@ public class JwtFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource()
                         .buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                bruteForceProtectionService.loginSucceeded(username);
+            }else{
+                bruteForceProtectionService.loginFailed(username);
             }
         }
         filterChain.doFilter(request, response);
